@@ -144,7 +144,8 @@
         const renderSVG = () => {
           size = modelViewer.getDimensions();
           
-          console.log("Scene scale: " + size);
+          
+
           drawLine(dimLines[0], modelViewer.queryHotspot('hotspot-dot+X-Y+Z'), modelViewer.queryHotspot('hotspot-dot+X-Y-Z'), modelViewer.queryHotspot('hotspot-dim+X-Y'));
           drawLine(dimLines[1], modelViewer.queryHotspot('hotspot-dot+X-Y-Z'), modelViewer.queryHotspot('hotspot-dot+X+Y-Z'), modelViewer.queryHotspot('hotspot-dim+X-Z'));
           drawLine(dimLines[2], modelViewer.queryHotspot('hotspot-dot+X+Y-Z'), modelViewer.queryHotspot('hotspot-dot-X+Y-Z')); // always visible
@@ -271,8 +272,8 @@
             const dx = camera.x - target.x;
             const dy = camera.y - target.y;
             const dz = camera.z - target.z;
-            console.log("dis cal dx : "+camera);
-            console.log("dis cal : "+target);
+            //console.log("dis cal dx : "+camera);
+            //console.log("dis cal : "+target);
             return Math.sqrt(dx * dx, dy * dy, dz * dz);
           };
 
@@ -299,9 +300,9 @@
             info.innerHTML = `
             <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
             <p>Current Distance: ${currentDistance.toFixed(2)}</p>
-            <p>Zoom: ${modelViewer.scale}%</p>`;
+            <p>Zoom: ${modelViewer.getFieldOfView().toFixed(2)}%</p>`;
             console.log("cam pos: "+camera);
-            console.log("traget: "+modelViewer.scale);
+            console.log("traget: "+modelViewer.getFieldOfView());
           };
           updateZoomPercentage();
           modelViewerTransform.addEventListener('camera-change', updateZoomPercentage);
