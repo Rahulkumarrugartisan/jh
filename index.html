@@ -269,12 +269,14 @@
             const dx = camera.x - target.x;
             const dy = camera.y - target.y;
             const dz = camera.z - target.z;
+            console.log("dis cal dx : "+camera);
+            console.log("dis cal : "+target);
             return Math.sqrt(dx * dx, dy * dy, dz * dz);
           };
 
           
-            const camera = modelViewerTransform.getCameraOrbit();
-            const target = modelViewerTransform.getBoundingBoxCenter();
+            const camera = modelViewer.getCameraTarget();//.getCameraOrbit();
+            const target =modelViewerTransform.getBoundingBoxCenter();
             initialCameraDistance = calculateDistance(camera, target);
 
             info.innerHTML = `
@@ -286,18 +288,18 @@
             renderSVG();
             //if (!initialCameraDistance) return;
 
-            const camera = modelViewerTransform.getCameraOrbit();
-            const target = modelViewerTransform.getBoundingBoxCenter();
+            const camera = modelViewer.getCameraTarget();//.getCameraOrbit();
+            const target = modelViewer.getBoundingBoxCenter();
             const currentDistance = calculateDistance(camera, target);
 
             const zoomPercentage = (initialCameraDistance / currentDistance) * 100;
-            const current_scale=modelViewerTransform.scale;
+            const current_scale=modelViewer.getBoundingBoxCenter();
             info.innerHTML = `
             <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
-            <p>Current Distance: ${current_scale}</p>
-            <p>Zoom: ${zoomPercentage.toFixed(2)}%</p>`;
+            <p>Current Distance: ${currentDistance.toFixed(2)}</p>
+            <p>Zoom: ${modelViewer.scale}%</p>`;
             console.log("cam pos: "+camera);
-            console.log("traget: "+current_scale );
+            console.log("traget: "+modelViewer.scale);
           };
           updateZoomPercentage();
           modelViewerTransform.addEventListener('camera-change', updateZoomPercentage);
