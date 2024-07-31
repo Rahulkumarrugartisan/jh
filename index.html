@@ -154,7 +154,7 @@
           function setVisibility(visible) {
             dimElements.forEach((element) => {
               if (visible) {
-                element.classList.remove("hide");
+                //element.classList.remove("hide");
               } else {
                 element.classList.add("hide");
               }
@@ -180,11 +180,11 @@
               svgLine.setAttribute("x2", dotHotspot2.canvasPosition.x);
               svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
               // Visibility toggle based on hotspot visibility
-              if (dimensionHotspot && !dimensionHotspot.facingCamera) {
+              //if (dimensionHotspot && !dimensionHotspot.facingCamera) {
                 svgLine.classList.add("hide");
-              }
+              //}
             } else {
-              svgLine.classList.remove("hide");
+              //svgLine.classList.remove("hide");
             }
           }
           var size = modelViewer.getDimensions();
