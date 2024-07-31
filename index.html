@@ -9,6 +9,7 @@
   </head>
 
   <body>
+    <div id="info">Loading...</div>
     <!-- <model-viewer> HTML element -->
     <model-viewer
       id="model"
@@ -119,8 +120,6 @@
         <label for="show-dimensions">Show Dimensions:</label>
         <input id="show-dimensions" type="checkbox" checked="true" />
       </div>
-
-      <div id="info">Loading...</div>
     </model-viewer>
 
     <script src="script.js"></script>
@@ -180,16 +179,18 @@
               svgLine.setAttribute("y1", dotHotspot1.canvasPosition.y);
               svgLine.setAttribute("x2", dotHotspot2.canvasPosition.x);
               svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
-              svgLine.classList.add("hide");
+              // Visibility toggle based on hotspot visibility
+              if (dimensionHotspot && !dimensionHotspot.facingCamera) {
+                svgLine.classList.add("hide");
+              }
             } else {
               svgLine.classList.remove("hide");
             }
           }
           var size = modelViewer.getDimensions();
           const dimLines = modelViewer.querySelectorAll("line");
-          console.log("line element: " + dimLines[0]);
+          //console.log("line element: " + dimLines[0]);
           const renderSVG = () => {
-            size = modelViewer.getDimensions();
             drawLine(
               dimLines[0],
               modelViewer.queryHotspot("hotspot-dot+X-Y+Z"),
@@ -206,8 +207,8 @@
               dimLines[2],
               modelViewer.queryHotspot("hotspot-dot+X+Y-Z"),
               modelViewer.queryHotspot("hotspot-dot-X+Y-Z")
-            );
-            /** always visible*/ drawLine(
+            ); // always visible
+            drawLine(
               dimLines[3],
               modelViewer.queryHotspot("hotspot-dot-X+Y-Z"),
               modelViewer.queryHotspot("hotspot-dot-X-Y-Z"),
@@ -294,10 +295,14 @@
             name: "hotspot-dot-X-Y+Z",
             position: `${center.x - x2} ${center.y - y2} ${center.z + z2}`,
           });
-          renderSVG(); /**--modelViewer.addEventListener('camera-change',
-        renderSVG);*/ /**---------------------------------------------------------------------------------*/ /**---------------------------------------------------------------------------------*/ /**---------------------------------------------------------------------------------*/
-          /**---------------------------------------------------------------------------------*/ /** URL of the new texture*/ const newTextureUrl =
-            param1.toString();
+          renderSVG();
+          /**--modelViewer.addEventListener('camera-change',renderSVG);*/
+          /**---------------------------------------------------------------------------------*/
+          /**---------------------------------------------------------------------------------*/
+          /**---------------------------------------------------------------------------------*/
+          /**---------------------------------------------------------------------------------*/
+          /** URL of the new texture*/
+          const newTextureUrl = param1.toString();
           try {
             /** Ensure the model is fully loaded*/ const model =
               modelViewer.model;
@@ -325,7 +330,9 @@
               );
             } else {
               console.error("Material does not support pbrMetallicRoughness");
-            } /**---------------------------------------------------------------------------------*/ /**---------------------------------------------------------------------------------*/
+            }
+            /**---------------------------------------------------------------------------------*/
+            /**---------------------------------------------------------------------------------*/
             const modelViewerTransform =
               document.querySelector("model-viewer#model");
             const info = document.querySelector("#info");
@@ -362,7 +369,8 @@
             modelViewerTransform.addEventListener(
               "camera-change",
               updateZoomPercentage
-            ); /**-------------------------------------------------------------------------------------------*/
+            );
+            /**-------------------------------------------------------------------------------------------*/
             /**-------------------------------------------------------------------------------------------*/
           } catch (error) {
             console.error(
@@ -423,7 +431,7 @@
       }
 
       .dimensionLine {
-        stroke: #ffffff;
+        stroke: #a20606;
         stroke-width: 5;
         stroke-dasharray: 5;
       }
@@ -431,6 +439,7 @@
       .hide {
         display: none;
       }
+
       /* This keeps child nodes hidden while the element loads */
 
       :not(:defined) > * {
