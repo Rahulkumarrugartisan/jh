@@ -9,7 +9,7 @@
   </head>
 
   <body>
-    <div id="info">Loading...</div>
+    
     <!-- <model-viewer> HTML element -->
     <model-viewer
       id="model"
@@ -100,6 +100,8 @@
         data-normal="-1 0 0"
       ></button>
 
+      <div id="info">Loading...</div>
+
       <!-- SVG for dimension lines -->
       <svg
         id="dimLines"
@@ -154,7 +156,7 @@
           function setVisibility(visible) {
             dimElements.forEach((element) => {
               if (visible) {
-                //element.classList.remove("hide");
+                element.classList.remove("hide");
               } else {
                 element.classList.add("hide");
               }
@@ -180,13 +182,17 @@
               svgLine.setAttribute("x2", dotHotspot2.canvasPosition.x);
               svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
               // Visibility toggle based on hotspot visibility
-              //if (dimensionHotspot && !dimensionHotspot.facingCamera) {
+              if (dimensionHotspot && !dimensionHotspot.facingCamera) {
                 svgLine.classList.add("hide");
-              //}
-            } else {
-              //svgLine.classList.remove("hide");
+              }
+              else {
+              svgLine.classList.remove("hide");
             }
+            } 
           }
+          //modelViewer.scale = `${1} ${1} ${1}`;
+          //modelViewer.updateFraming();
+          console.log("dimensions: " + modelViewer.scale);
           var size = modelViewer.getDimensions();
           const dimLines = modelViewer.querySelectorAll("line");
           //console.log("line element: " + dimLines[0]);
@@ -223,6 +229,7 @@
           };
           const center = modelViewer.getBoundingBoxCenter();
           size = modelViewer.getDimensions();
+          console.log("dimensions: " + modelViewer.getDimensions());
           const x2 = size.x / 2;
           const y2 = size.y / 2;
           const z2 = size.z / 2;
@@ -362,7 +369,7 @@
               const current_scale = modelViewer.getBoundingBoxCenter();
               info.innerHTML = `
         <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
-        <p>Current Distance: ${currentDistance.toFixed(2)}</p>
+        <p>Current Distance: ${modelViewer.scale}</p>
         <p>Zoom: ${modelViewer.getFieldOfView().toFixed(2)}%</p>`;
             };
             updateZoomPercentage();
@@ -431,7 +438,7 @@
       }
 
       .dimensionLine {
-        stroke: #a20606;
+        stroke: #ffffff;
         stroke-width: 5;
         stroke-dasharray: 5;
       }
