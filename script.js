@@ -1,4 +1,4 @@
-// Handles loading the events for <model-viewer>'s slotted progress bar
+/** Handles loading the events for <model-viewer>'s slotted progress bar*/
 const onProgress = (event) => {
     const progressBar = event.target.querySelector('.progress-bar');
     const updatingBar = event.target.querySelector('.update-bar');
@@ -8,7 +8,7 @@ const onProgress = (event) => {
       progressBar.classList.add('hide');
       event.target.removeEventListener('progress', onProgress);
     }, 500); 
-        event.target.removeEventListener('progress', onProgress);
+       
     } else {
         progressBar.classList.remove('hide');
     }

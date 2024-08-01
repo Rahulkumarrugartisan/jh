@@ -1,481 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
   <title>&lt;model-viewer&gt; template</title>
-  <meta charset="utf-8" />
-  <meta name="description" content="&lt;model-viewer&gt; template" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="description" content="&lt;model-viewer&gt; template">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link type="text/css" href="./styles.css" rel="stylesheet" />
 </head>
 
 <body>
 
+
   <!-- <model-viewer> HTML element -->
-  <model-viewer id="model" src="rect.glb" alt="A 3D model" ar ar-modes="webxr scene-viewer quick-look" ar-scale="auto"
-    camera-controls touch-action="pan-y" tone-mapping="neutral" poster="poster.webp" shadow-intensity="0.5"
-    style="background-color: #cecece">
+  <model-viewer id="model" src="rect.glb" alt="A 3D model" ar ar-modes="webxr scene-viewer quick-look" camera-controls
+    tone-mapping="neutral" poster="poster.webp" shadow-intensity="0.1">
+
+
+
+
     <div class="progress-bar" slot="progress-bar">
       <div class="update-bar"></div>
     </div>
-    <button slot="ar-button" id="ar-button">View in your space</button>
+    <button slot="ar-button" id="ar-button">
+      View in your space
+    </button>
     <div id="ar-prompt">
-      <img src="ar_hand_prompt.png" />
+      <img src="ar_hand_prompt.png">
     </div>
-    <div id="zoomPercentage">Zoom: 100%</div>
 
-    <!-- Hotspots for dimension markers -->
-    <button id="bt" slot="hotspot-dot+X-Y+Z" class="dot" data-position="1 -1 1" data-normal="1 0 0"></button>
-    <button id="bt" slot="hotspot-dim+X-Y" class="dim" data-position="1 -1 0" data-normal="1 0 0"></button>
-    <button id="bt" slot="hotspot-dot+X-Y-Z" class="dot" data-position="1 -1 -1" data-normal="1 0 0"></button>
-    <button id="bt" slot="hotspot-dim+X-Z" class="dim" data-position="1 0 -1" data-normal="1 0 0"></button>
-    <button id="bt" slot="hotspot-dot+X+Y-Z" class="dot" data-position="1 1 -1" data-normal="0 1 0"></button>
-    <button id="bt" slot="hotspot-dim+Y-Z" class="dim" data-position="0 -1 -1" data-normal="0 1 0"></button>
-    <button id="bt" slot="hotspot-dot-X+Y-Z" class="dot" data-position="-1 1 -1" data-normal="0 1 0"></button>
-    <button id="bt" slot="hotspot-dim-X-Z" class="dim" data-position="-1 0 -1" data-normal="-1 0 0"></button>
-    <button id="bt" slot="hotspot-dot-X-Y-Z" class="dot" data-position="-1 -1 -1" data-normal="-1 0 0"></button>
-    <button id="bt" slot="hotspot-dim-X-Y" class="dim" data-position="-1 -1 0" data-normal="-1 0 0"></button>
-    <button id="bt" slot="hotspot-dot-X-Y+Z" class="dot" data-position="-1 -1 1" data-normal="-1 0 0"></button>
 
-    <div id="info">Loading...</div>
 
-    <!-- SVG for dimension lines -->
-    <svg id="dimLines" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="dimensionLineContainer">
-      <line class="dimensionLine"></line>
-      <line class="dimensionLine"></line>
-      <line class="dimensionLine"></line>
-      <line class="dimensionLine"></line>
-      <line class="dimensionLine"></line>
-    </svg>
 
-    <!-- Control panel for toggling dimensions visibility -->
-    <div id="controls" class="dim">
-      <label for="show-dimensions">Size:</label>
-      <input id="show-dimensions" type="checkbox" checked="true" />
-    </div>
   </model-viewer>
-
   <script src="script.js"></script>
+
+
+
 
   <!-- Loads <model-viewer> for browsers: -->
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 
   <script type="module">
 
-
-
     function delay(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async function fetchWithRetry(url, retries = 3, delayTime = 1000) {
-      for (let i = 0; i < retries; i++) {
+    async function fetchWithExponentialBackoff(url, retries = 5, delayTime = 1000) {
+      let attempt = 0;
+      while (attempt < retries) {
         try {
           const response = await fetch(url, { mode: 'cors' });
           if (response.status === 429) {
-            const retryAfter = response.headers.get('Retry-After') || delayTime;
-            await delay(retryAfter * 1000);
+            const retryAfter = response.headers.get('Retry-After');
+            const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : delayTime * Math.pow(2, attempt);
+            await delay(waitTime);
+            attempt++;
             continue;
           }
           return response;
         } catch (error) {
-          if (i === retries - 1) throw error;
-          await delay(delayTime);
+          if (attempt === retries - 1) throw error;
+          await delay(delayTime * Math.pow(2, attempt));
+          attempt++;
         }
       }
       throw new Error('Max retries reached');
     }
 
-    async function loadSVGAsTexture(url) {
-      const response = await fetch(url);
-      const svgText = await response.text();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
-      const blobUrl = URL.createObjectURL(blob);
+    async function loadImageAsTexture(url) {
+      const response = await fetchWithExponentialBackoff(url);
+      const blob = await response.blob();
+      const imgType = blob.type;
 
-      const img = new Image();
-      img.src = blobUrl;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
+      if (imgType === 'image/svg+xml') {
+        const svgText = await blob.text();
+        const blobUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
 
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+        const img = new Image();
+        img.src = blobUrl;
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
 
-      const textureUrl = canvas.toDataURL('image/png');
-      return textureUrl;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const textureUrl = canvas.toDataURL('image/png');
+        return textureUrl;
+      } else if (imgType === 'image/png' || imgType === 'image/jpeg') {
+        return URL.createObjectURL(blob);
+      } else {
+        throw new Error('Unsupported image type');
+      }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const modelViewer = document.querySelector("#model");
-      modelViewer.addEventListener("load", async () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const modelViewerTexture1 = document.querySelector("#model");
 
+      modelViewerTexture1.addEventListener("load", async () => {
+        //------------------------------------------------------------------------------------
+        //** get data from URL */
+        //------------------------------------------------------------------------------------
+        // Example URL with encoded fragment
+        const url = 'https://example.com/page#data=value%201&shape=value%202';
 
-
-
-        /**---------------------------------------------------------------------------------*/
-        /** get data from URL */
-        /**---------------------------------------------------------------------------------*/
-        /** Example URL with encoded fragment*/
-        const url = "https://example.com/page#data=value%201&shape=value%202";
         const currentUrl = window.location.href;
-          /** Create a URL object*/ const urlObject = new URL(currentUrl);
-          /** Get the fragment*/ const fragment = urlObject.hash.substring(1);
-        /** Remove the '#'*/ /** Decode and extract parameters*/
+        const urlObject = new URL(currentUrl);
+        const fragment = urlObject.hash.substring(1);
         const params = new URLSearchParams(fragment);
         const param1 = params.get('data');
         const svgTextureUrl = param1.toString();
 
-        //const param1 = params.get("data");
-        const param2 = params.get("shape");
+        //const param1 = params.get('data'); // Decodes 'value%201' to 'value 1'
+        const param2 = params.get('shape'); // Decodes 'value%202' to 'value 2'
 
-        const textureUrl = await loadSVGAsTexture(svgTextureUrl);
-        console.log("data:", param1);
-        console.log("shape:", param2);
-        const checkbox = modelViewer.querySelector("#show-dimensions");
-        const dimElements = [
-          ...modelViewer.querySelectorAll("#bt"),
-          modelViewer.querySelector("#dimLines"),
-        ];
-        const progress_bar = document.querySelector("#progress-bar")
-        //progress_bar.remove("hide");
-        function setVisibility(visible) {
-          dimElements.forEach((element) => {
-            if (visible) {
-              element.classList.remove("hide");
-            } else {
-              element.classList.add("hide");
-            }
-          });
-        }
-        checkbox.addEventListener("change", () => {
-          setVisibility(checkbox.checked);
-        });
-        modelViewer.addEventListener("ar-status", (event) => {
-          setVisibility(
-            checkbox.checked && event.detail.status !== "session-started"
-          );
-        });
-        function drawLine(
-          svgLine,
-          dotHotspot1,
-          dotHotspot2,
-          dimensionHotspot
-        ) {
-          if (dotHotspot1 && dotHotspot2) {
-            svgLine.setAttribute("x1", dotHotspot1.canvasPosition.x);
-            svgLine.setAttribute("y1", dotHotspot1.canvasPosition.y);
-            svgLine.setAttribute("x2", dotHotspot2.canvasPosition.x);
-            svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
-            // Visibility toggle based on hotspot visibility
-            if (dimensionHotspot && !dimensionHotspot.facingCamera) {
-              svgLine.classList.add("hide");
-            }
-            else {
-              svgLine.classList.remove("hide");
-            }
-          }
-        }
-        modelViewer.scale = `${1} ${1} ${1}`;
-        //modelViewer.updateFraming();
-        var size = modelViewer.getDimensions();
-        const dimLines = modelViewer.querySelectorAll("line");
-        //console.log("line element: " + dimLines[0]);
-        const renderSVG = () => {
-          drawLine(
-            dimLines[0],
-            modelViewer.queryHotspot("hotspot-dot+X-Y+Z"),
-            modelViewer.queryHotspot("hotspot-dot+X-Y-Z"),
-            modelViewer.queryHotspot("hotspot-dim+X-Y")
-          );
-          drawLine(
-            dimLines[1],
-            modelViewer.queryHotspot("hotspot-dot+X-Y-Z"),
-            modelViewer.queryHotspot("hotspot-dot+X+Y-Z"),
-            modelViewer.queryHotspot("hotspot-dim+X-Z")
-          );
-          drawLine(
-            dimLines[2],
-            modelViewer.queryHotspot("hotspot-dot+X+Y-Z"),
-            modelViewer.queryHotspot("hotspot-dot-X+Y-Z")
-          ); // always visible
-          drawLine(
-            dimLines[3],
-            modelViewer.queryHotspot("hotspot-dot-X+Y-Z"),
-            modelViewer.queryHotspot("hotspot-dot-X-Y-Z"),
-            modelViewer.queryHotspot("hotspot-dim-X-Z")
-          );
-          drawLine(
-            dimLines[4],
-            modelViewer.queryHotspot("hotspot-dot-X-Y-Z"),
-            modelViewer.queryHotspot("hotspot-dot-X-Y+Z"),
-            modelViewer.queryHotspot("hotspot-dim-X-Y")
-          );
-        };
-        const center = modelViewer.getBoundingBoxCenter();
-        size = modelViewer.getDimensions();
+        const textureUrl = await loadImageAsTexture(svgTextureUrl);
 
-        console.log("dimensions: " + modelViewer);
-        const x2 = size.x / 2;
-        const y2 = size.y / 2;
-        const z2 = size.z / 2;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot+X-Y+Z",
-          position: `${center.x + x2} ${center.y - y2} ${center.z + z2}`,
-        });
-        modelViewer.updateHotspot({
-          name: "hotspot-dim+X-Y",
-          position: `${center.x + x2 * 1.1} ${center.y - y2 * 1.1} ${center.z
-            }`,
-        });
-        modelViewer.querySelector(
-          'button[slot="hotspot-dim+X-Y"]'
-        ).textContent = `${((size.z * 100) / 30.48).toFixed(0.0)} ft`;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot+X-Y-Z",
-          position: `${center.x + x2} ${center.y - y2} ${center.z - z2}`,
-        });
-        modelViewer.updateHotspot({
-          name: "hotspot-dim+X-Z",
-          position: `${center.x + x2 * 1.1} ${center.y} ${center.z - z2 * 1.1
-            }`,
-        });
-        modelViewer.querySelector(
-          'button[slot="hotspot-dim+X-Z"]'
-        ).textContent = `${((size.y * 100) / 30.48).toFixed(0)} ft`;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot+X+Y-Z",
-          position: `${center.x + x2} ${center.y + y2} ${center.z - z2}`,
-        });
-        modelViewer.updateHotspot({
-          name: "hotspot-dim+Y-Z",
-          position: `${center.x} ${center.y + y2 * 1.1} ${center.z - z2 * 1.1
-            }`,
-        });
-        modelViewer.querySelector(
-          'button[slot="hotspot-dim+Y-Z"]'
-        ).textContent = `${((size.x * 100) / 30.48).toFixed(0)} ft`;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot-X+Y-Z",
-          position: `${center.x - x2} ${center.y + y2} ${center.z - z2}`,
-        });
-        modelViewer.updateHotspot({
-          name: "hotspot-dim-X-Z",
-          position: `${center.x - x2 * 1.1} ${center.y} ${center.z - z2 * 1.1
-            }`,
-        });
-        modelViewer.querySelector(
-          'button[slot="hotspot-dim-X-Z"]'
-        ).textContent = `${((size.y * 100) / 30.48).toFixed(0)} ft`;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot-X-Y-Z",
-          position: `${center.x - x2} ${center.y - y2} ${center.z - z2}`,
-        });
-        modelViewer.updateHotspot({
-          name: "hotspot-dim-X-Y",
-          position: `${center.x - x2 * 1.1} ${center.y - y2 * 1.1} ${center.z
-            }`,
-        });
-        modelViewer.querySelector(
-          'button[slot="hotspot-dim-X-Y"]'
-        ).textContent = `${((size.z * 100) / 30.48).toFixed(0)} ft`;
-        modelViewer.updateHotspot({
-          name: "hotspot-dot-X-Y+Z",
-          position: `${center.x - x2} ${center.y - y2} ${center.z + z2}`,
-        });
-        renderSVG();
-        /**--modelViewer.addEventListener('camera-change',renderSVG);*/
-        /**---------------------------------------------------------------------------------*/
-        /**---------------------------------------------------------------------------------*/
+        //const blob = await response.blob();
+        //const blobUrl = URL.createObjectURL(blob);
 
-        /**---------------------------------------------------------------------------------*/
-        /**---------------------------------------------------------------------------------*/
-        /** URL of the new texture*/
+        console.log('data:', param1);
+        console.log('shape:', param2);
+        //------------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------------
+
+        // URL of the new texture
         const newTextureUrl = param1.toString();
+
         try {
-            /** Ensure the model is fully loaded*/ const model =
-            modelViewer.model;
+          // Ensure the model is fully loaded
+          const model = modelViewerTexture1.model;
           if (!model) {
-            console.error("Model not found");
+            console.error('Model not found');
             return;
           }
+
+          // Assume you want to apply the texture to the first material
           const material = model.materials[0];
           if (!material) {
-            console.error("Material not found");
+            console.error('Material not found');
             return;
           }
-          const texture = await modelViewer.createTexture(textureUrl);
+
+          // Create and apply the texture
+          const texture = await modelViewerTexture1.createTexture(textureUrl);
           if (material.pbrMetallicRoughness) {
-            material.pbrMetallicRoughness["baseColorTexture"].setTexture(
-              texture
-            );
-            const nor_sampler =
-              modelViewer.model.materials[0].normalTexture.texture.sampler;
-            nor_sampler.setScale({ u: 3, v: 4 });
-            console.log(
-              "traget: " +
-              modelViewer.model.materials[0].normalTexture.texture.sampler
-                .name
-            );
+            material.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
           } else {
-            console.error("Material does not support pbrMetallicRoughness");
+            console.error('Material does not support pbrMetallicRoughness');
           }
 
-          /**---------------------------------------------------------------------------------*/
-          /**---------------------------------------------------------------------------------*/
-          modelViewer.updateFraming();
-          let zoom_per;
-          const zoomPercentageDiv = document.querySelector('#zoomPercentage');
 
-          // Variables to store the default field of view (FOV)
-          const defaultFOV = modelViewer.getFieldOfView();
 
-          modelViewer.addEventListener('camera-change', () => {
-            const currentFOV = modelViewer.getFieldOfView();
-            const zoomPercentage_n = (defaultFOV / currentFOV) * 100;
-            zoom_per=zoomPercentage_n;
-            zoomPercentageDiv.textContent = `Zoom: ${zoomPercentage_n.toFixed(0)}%`;
-          });
 
-          // Initialize with current zoom level
-          const initializeZoom = () => {
-            const currentFOV = modelViewer.getFieldOfView();
-            const zoomPercentage_n = (defaultFOV / currentFOV) * 100;
-            zoom_per=zoomPercentage_n;
-            zoomPercentageDiv.textContent = `Zoom: ${zoomPercentage_n.toFixed(0)}%`;
-          };
-
-          // Wait for model to load before initializing
-          modelViewer.addEventListener('load', initializeZoom);
-
-          const modelViewerTransform =
-            document.querySelector("model-viewer#model");
-          const info = document.querySelector("#info");
-          let initialCameraDistance;
-          const calculateDistance = (camera, target) => {
-            const dx = camera.x - target.x;
-            const dy = camera.y - target.y;
-            const dz = camera.z - target.z;
-            return Math.sqrt(dx * dx, dy * dy, dz * dz);
-          };
-          const camera = modelViewer.getCameraTarget();
-            /**.getCameraOrbit();*/ const target =
-            modelViewerTransform.getBoundingBoxCenter();
-          initialCameraDistance = calculateDistance(camera, target);
-          info.innerHTML = `
-            <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
-            <p>Zoom: 100%</p>`;
-          const updateZoomPercentage = () => {
-            renderSVG();
-              //console.log("dimensions: " + modelViewer.touch-action);
-              /**if (!initialCameraDistance) return;*/ const camera =
-              modelViewer.getCameraTarget();
-              /**.getCameraOrbit();*/ const target =
-              modelViewer.getBoundingBoxCenter();
-            const currentDistance = calculateDistance(camera, target);
-            const zoomPercentage =
-              (initialCameraDistance / currentDistance) * 100;
-            const current_scale = modelViewer.getBoundingBoxCenter();
-            info.innerHTML = `
-        <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
-        <p>Current Distance: ${modelViewer.scale}</p>
-        <p>Zoom: ${zoom_per}%</p>`;
-          };
-          updateZoomPercentage();
-          modelViewerTransform.addEventListener(
-            "camera-change",
-            updateZoomPercentage
-          );
-
-          /**-------------------------------------------------------------------------------------------*/
-          /**-------------------------------------------------------------------------------------------*/
         } catch (error) {
-          console.error(
-            "An error occurred while applying the texture:",
-            error
-          );
+          console.error('An error occurred while applying the texture:', error);
         }
       });
     });
   </script>
 
-  <style>
-    #controls {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      max-width: unset;
-      transform: unset;
-      pointer-events: auto;
-      z-index: 100;
-    }
 
-    .dot {
-      display: none;
-    }
-
-    .dim {
-      background: #fff;
-      border-radius: 20px;
-      border: none;
-      box-sizing: border-box;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-      color: rgba(0, 0, 0, 0.8);
-      display: block;
-      font-family: Futura, Helvetica Neue, sans-serif;
-      font-size: 1em;
-      font-weight: 700;
-      max-width: 128px;
-      overflow-wrap: break-word;
-      padding: 0.5em 1em;
-      position: absolute;
-      width: max-content;
-      height: max-content;
-      transform: translate3d(-50%, -50%, 0);
-      pointer-events: none;
-      --min-hotspot-opacity: 0;
-    }
-
-    @media only screen and (max-width: 800px) {
-      .dim {
-        font-size: 3vw;
-      }
-    }
-
-    .dimensionLineContainer {
-      pointer-events: none;
-      display: block;
-    }
-
-    .dimensionLine {
-      stroke: #ffffff;
-      stroke-width: 5;
-      stroke-dasharray: 5;
-    }
-
-    .hide {
-      display: none;
-    }
-
-    /* This keeps child nodes hidden while the element loads */
-
-    :not(:defined)>* {
-      display: none;
-    }
-
-    #info {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: white;
-      display: block;
-      padding: 10px;
-      border: 1px solid #ccc;
-      z-index: 10;
-    }
-  </style>
 </body>
+
 
 </html>
