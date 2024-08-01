@@ -19,12 +19,13 @@
       ar-modes="webxr scene-viewer quick-look"
       ar-scale="auto"
       camera-controls
+      touch-action="pan-y"
       tone-mapping="neutral"
       poster="poster.webp"
       shadow-intensity="0.005"
       style="background-color: #cecece"
     >
-      <div class="progress-bar hide" slot="progress-bar">
+      <div class="progress-bar" slot="progress-bar">
         <div class="update-bar"></div>
       </div>
       <button slot="ar-button" id="ar-button">View in your space</button>
@@ -33,67 +34,67 @@
       </div>
 
       <!-- Hotspots for dimension markers -->
-      <button
+      <button id="bt"
         slot="hotspot-dot+X-Y+Z"
         class="dot"
         data-position="1 -1 1"
         data-normal="1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dim+X-Y"
         class="dim"
         data-position="1 -1 0"
         data-normal="1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dot+X-Y-Z"
         class="dot"
         data-position="1 -1 -1"
         data-normal="1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dim+X-Z"
         class="dim"
         data-position="1 0 -1"
         data-normal="1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dot+X+Y-Z"
         class="dot"
         data-position="1 1 -1"
         data-normal="0 1 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dim+Y-Z"
         class="dim"
         data-position="0 -1 -1"
         data-normal="0 1 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dot-X+Y-Z"
         class="dot"
         data-position="-1 1 -1"
         data-normal="0 1 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dim-X-Z"
         class="dim"
         data-position="-1 0 -1"
         data-normal="-1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dot-X-Y-Z"
         class="dot"
         data-position="-1 -1 -1"
         data-normal="-1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dim-X-Y"
         class="dim"
         data-position="-1 -1 0"
         data-normal="-1 0 0"
       ></button>
-      <button
+      <button id="bt"
         slot="hotspot-dot-X-Y+Z"
         class="dot"
         data-position="-1 -1 1"
@@ -136,9 +137,11 @@
       document.addEventListener("DOMContentLoaded", () => {
         const modelViewer = document.querySelector("#model");
         modelViewer.addEventListener("load", async () => {
-          /**---------------------------------------------------------------------------------*/ /** get
-        data from URL */ /**---------------------------------------------------------------------------------*/ /** Example URL with encoded fragment*/ const url =
-            "https://example.com/page#data=value%201&shape=value%202";
+          /**---------------------------------------------------------------------------------*/ 
+          /** get data from URL */ 
+          /**---------------------------------------------------------------------------------*/ 
+          /** Example URL with encoded fragment*/ 
+          const url ="https://example.com/page#data=value%201&shape=value%202";
           const currentUrl = window.location.href;
           /** Create a URL object*/ const urlObject = new URL(currentUrl);
           /** Get the fragment*/ const fragment = urlObject.hash.substring(1);
@@ -150,15 +153,17 @@
           console.log("shape:", param2);
           const checkbox = modelViewer.querySelector("#show-dimensions");
           const dimElements = [
-            ...modelViewer.querySelectorAll("button"),
+            modelViewer.querySelector("#bt"),
             modelViewer.querySelector("#dimLines"),
           ];
+          const progress_bar=document.querySelector("#progress-bar")
+          //progress_bar.remove("hide");
           function setVisibility(visible) {
             dimElements.forEach((element) => {
               if (visible) {
-                element.classList.remove("hide");
+               // element.classList.remove("hide");
               } else {
-                element.classList.add("hide");
+                //element.classList.add("hide");
               }
             });
           }
@@ -167,7 +172,7 @@
           });
           modelViewer.addEventListener("ar-status", (event) => {
             setVisibility(
-              checkbox.checked && event.detail.status !== "session-started"
+             // checkbox.checked && event.detail.status !== "session-started"
             );
           });
           function drawLine(
@@ -183,16 +188,15 @@
               svgLine.setAttribute("y2", dotHotspot2.canvasPosition.y);
               // Visibility toggle based on hotspot visibility
               if (dimensionHotspot && !dimensionHotspot.facingCamera) {
-                svgLine.classList.add("hide");
+                //svgLine.classList.add("hide");
               }
               else {
-              svgLine.classList.remove("hide");
+              //svgLine.classList.remove("hide");
             }
             } 
           }
           //modelViewer.scale = `${1} ${1} ${1}`;
           //modelViewer.updateFraming();
-          console.log("dimensions: " + modelViewer.scale);
           var size = modelViewer.getDimensions();
           const dimLines = modelViewer.querySelectorAll("line");
           //console.log("line element: " + dimLines[0]);
@@ -229,7 +233,8 @@
           };
           const center = modelViewer.getBoundingBoxCenter();
           size = modelViewer.getDimensions();
-          console.log("dimensions: " + modelViewer.getDimensions());
+          
+          console.log("dimensions: " + modelViewer);
           const x2 = size.x / 2;
           const y2 = size.y / 2;
           const z2 = size.z / 2;
@@ -239,7 +244,7 @@
           });
           modelViewer.updateHotspot({
             name: "hotspot-dim+X-Y",
-            position: `${center.x + x2 * 1.2} ${center.y - y2 * 1.1} ${
+            position: `${center.x + x2 * 1.1} ${center.y - y2 * 1.1} ${
               center.z
             }`,
           });
@@ -252,8 +257,8 @@
           });
           modelViewer.updateHotspot({
             name: "hotspot-dim+X-Z",
-            position: `${center.x + x2 * 1.2} ${center.y} ${
-              center.z - z2 * 1.2
+            position: `${center.x + x2 * 1.1} ${center.y} ${
+              center.z - z2 * 1.1
             }`,
           });
           modelViewer.querySelector(
@@ -278,8 +283,8 @@
           });
           modelViewer.updateHotspot({
             name: "hotspot-dim-X-Z",
-            position: `${center.x - x2 * 1.2} ${center.y} ${
-              center.z - z2 * 1.2
+            position: `${center.x - x2 * 1.1} ${center.y} ${
+              center.z - z2 * 1.1
             }`,
           });
           modelViewer.querySelector(
@@ -291,7 +296,7 @@
           });
           modelViewer.updateHotspot({
             name: "hotspot-dim-X-Y",
-            position: `${center.x - x2 * 1.2} ${center.y - y2 * 1.1} ${
+            position: `${center.x - x2 * 1.1} ${center.y - y2 * 1.1} ${
               center.z
             }`,
           });
@@ -306,6 +311,7 @@
           /**--modelViewer.addEventListener('camera-change',renderSVG);*/
           /**---------------------------------------------------------------------------------*/
           /**---------------------------------------------------------------------------------*/
+
           /**---------------------------------------------------------------------------------*/
           /**---------------------------------------------------------------------------------*/
           /** URL of the new texture*/
@@ -338,6 +344,7 @@
             } else {
               console.error("Material does not support pbrMetallicRoughness");
             }
+
             /**---------------------------------------------------------------------------------*/
             /**---------------------------------------------------------------------------------*/
             const modelViewerTransform =
@@ -355,10 +362,11 @@
               modelViewerTransform.getBoundingBoxCenter();
             initialCameraDistance = calculateDistance(camera, target);
             info.innerHTML = `
-        <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
-        <p>Zoom: 100%</p>`;
+            <p>Initial Distance: ${initialCameraDistance.toFixed(2)}</p>
+            <p>Zoom: 100%</p>`;
             const updateZoomPercentage = () => {
               renderSVG();
+              //console.log("dimensions: " + modelViewer.touch-action);
               /**if (!initialCameraDistance) return;*/ const camera =
                 modelViewer.getCameraTarget();
               /**.getCameraOrbit();*/ const target =
@@ -377,6 +385,7 @@
               "camera-change",
               updateZoomPercentage
             );
+
             /**-------------------------------------------------------------------------------------------*/
             /**-------------------------------------------------------------------------------------------*/
           } catch (error) {
